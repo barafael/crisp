@@ -1,3 +1,12 @@
+use std::io::{self, BufRead};
+
 fn main() {
-    println!("Hello, world!");
+    loop {
+        let mut line = String::new();
+
+        io::stdin()
+            .read_line(&mut line)
+            .expect("failed to read line");
+        println!("{}", line);
+    }
 }
