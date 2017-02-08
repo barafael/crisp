@@ -5,5 +5,5 @@ parsing: parsing.c
 	cc -std=c99 -Wall parsing.c mpc.c -lm -lreadline -o parsing
 
 clean:
-	rm prompt
+	rm prompt parsing
 
