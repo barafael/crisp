@@ -14,7 +14,7 @@ fn main() {
         // Emit no unstable/nightly Rust code
         .no_unstable_rust()
         // The input header we would like to generate bindings for
-        .header("src/mpc.h")
+        .header("mpc/mpc.h")
         // Finish the builder and generate the bindings
         .generate()
         // Unwrap the Result and panic on failure
