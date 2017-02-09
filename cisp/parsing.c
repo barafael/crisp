@@ -19,8 +19,8 @@ int main(int argc, char** argv) {
     /* Define the parsers with the following language */
     mpca_lang(MPCA_LANG_DEFAULT,
             "                                                     \
-              number   : /-?[1-9][0-9]*/ ;                             \
-              operator : '+' | '-' | '*' | '/' ;                  \
+              number   : /(0 |-?[1-9][0-9]*)/ ;                    \
+              operator : '+' | '-' | '*' | '/' | '%' ;            \
               expr     : <number> | '(' <operator> <expr>+ ')' ;  \
               lispy    : /^/ <operator> <expr>+ /$/ ;             \
             ",
