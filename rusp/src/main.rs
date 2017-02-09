@@ -1,10 +1,15 @@
+#![allow(non_upper_case_globals)]
+#![allow(non_camel_case_types)]
+#![allow(non_snake_case)]
+
 extern crate rustyline;
 
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
+include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+
 fn main() {
-    // `()` can be used when no completer is required
     let mut rl = Editor::<()>::new();
     loop {
         let readline = rl.readline("lispy >> ");

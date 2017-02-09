@@ -1,9 +1,12 @@
 [package]
 name = "rusp"
 version = "0.1.0"
+build = "build.rs"
 authors = ["Rafael Bachmann <triolenzunge@gmail.com>"]
 
+[build-dependencies]
+bindgen = "0.20.0"
+
 [dependencies]
-
 rustyline = "1.0.0"
-
+libc = "0.2.20"
