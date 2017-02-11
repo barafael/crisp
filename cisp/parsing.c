@@ -6,8 +6,8 @@
 
 #include "mpc.h"
 
-/* Declare input buffer */
-static char input[2048];
+///* Declare input buffer */
+//static char input[2048];
 
 int main(int argc, char** argv) {
     /* Create some parsers */
@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
     /* Define the parsers with the following language */
     mpca_lang(MPCA_LANG_DEFAULT,
             "                                                     \
-              number   : /(0 |-?[1-9][0-9]*)/ ;                    \
+              number   : /(-?[1-9][0-9]*)/ ;                      \
               operator : '+' | '-' | '*' | '/' | '%' ;            \
               expr     : <number> | '(' <operator> <expr>+ ')' ;  \
               lispy    : /^/ <operator> <expr>+ /$/ ;             \
@@ -29,6 +29,8 @@ int main(int argc, char** argv) {
     /* Version and exit information */
     puts("Lispy version 0.0.0.0.1\n");
     puts("Press CTRL-C to exit\n");
+
+    puts("Example expression: * 2 2 or * (+ 1 5) (* 1 3 7)");
 
     while (1) {
         char* input = readline("cispy >> ");
