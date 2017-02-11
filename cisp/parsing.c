@@ -6,10 +6,21 @@
 
 #include "mpc.h"
 
-///* Declare input buffer */
-//static char input[2048];
+long eval_op(long x, char* op, long y) {
+    switch(op[0]) {
+        case '+': return x + y;
+        case '-': return x - y;
+        case '*': return x * y;
+        case '/': return x / y;
+        case '%': return x % y;
+    }
+    printf("Unknown operator: %s", op);
+    return 0;
+}
 
 int main(int argc, char** argv) {
+    printf("4 * 2: %li\n", eval_op(4, "*", 2));
+
     /* Create some parsers */
     mpc_parser_t* Number     = mpc_new("number");
     mpc_parser_t* Operator   = mpc_new("operator");
