@@ -49,7 +49,7 @@ fn main() {
                     let mut r: mpc_result_t = mpc_result_t { error: Default::default(), output:Default::default(), bindgen_union_field: 0u64};
                     let stdin_str = CString::new("<stdin>").unwrap();
                     let input = CString::new(line).unwrap();
-                    if (mpc_parse(stdin_str.as_ptr(), input.as_ptr(), number, &mut r)) != 0 {
+                    if (mpc_parse(stdin_str.as_ptr(), input.as_ptr(), lispy, &mut r)) != 0 {
                         /* Success - print the AST */
                         mpc_ast_print(*r.output.as_ref() as *mut mpc_ast_t);
                         mpc_ast_delete(*r.output.as_ref() as *mut mpc_ast_t);
