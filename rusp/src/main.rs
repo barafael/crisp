@@ -31,7 +31,7 @@ fn main() {
                     }
                     rl.add_history_entry(&line);
                     println!("{}", line);
-                    let mut r: mpc_result_t = mpc_result_t { error: something as __BindgenUnionField<*mut mpc_err_t>, output: something as __BindgenUnionField<*mut mpc_val_t>, bindgen_union_field: 0u64};
+                    let mut r: mpc_result_t = mpc_result_t { error: Default::default(), output:Default::default(), bindgen_union_field: 0u64};
                     let stdin_str = CString::new("<stdin>").unwrap();
                     let input = CString::new(line).unwrap();
                     if (mpc_parse(stdin_str.as_ptr(), input.as_ptr(), number, &mut r)) != 0 {
