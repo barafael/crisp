@@ -6,7 +6,8 @@ authors = ["Rafael Bachmann <triolenzunge@gmail.com>"]
 
 [build-dependencies]
 bindgen = "0.20.0"
+gcc = "0.3.43"
 
 [dependencies]
 rustyline = "1.0.0"
-libc = "0.2.20"
+libc = "0.2"

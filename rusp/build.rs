@@ -1,11 +1,14 @@
 extern crate bindgen;
+extern crate gcc;
 
 use std::env;
 use std::path::PathBuf;
 
 fn main() {
+    gcc::compile_library("libmpc.a", &["mpc/mpc.c"]);
+
     // Tell cargo to tell rustc to link mpc library
-    println!("cargo:rustc-link-lib=mpc");
+    //println!("cargo:rustc-link-lib=libmpc.a");
 
     // The bindgen::Builder is the main entry point to bindgen, and lets you build up options for
     // the resulting bindings
