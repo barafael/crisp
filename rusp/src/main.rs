@@ -12,7 +12,19 @@ use rustyline::Editor;
 
 use std::ffi::CString;
 
+fn eval_op(x: i64, op: &str, y: i64) -> i64 {
+    match op {
+        "+" => x + y,
+        "-" => x - y,
+        "*" => x * y,
+        "/" => x / y,
+        "%" => x % y,
+        _ => { println!("Unknown operator: {}", op); 0 }, // TODO fix C-style 0 return
+    }
+}
+
 fn main() {
+    // // println!("12-13: {}", eval_op(12i64, "-", 13i64));
     // All functions from mpc are considered unsafe
     unsafe {
         /* Version and exit information */
