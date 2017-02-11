@@ -14,6 +14,8 @@ fn main() {
     // the resulting bindings
 
     let bindings = bindgen::Builder::default()
+        .generate_comments(true)
+        .emit_builtins()
         // Emit no unstable/nightly Rust code
         .no_unstable_rust()
         // The input header we would like to generate bindings for

@@ -10,16 +10,31 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
 use std::ffi::CString;
-use std::os::raw::c_char;
-use std::ptr;
+//use std::os::raw::c_char;
+//use std::ptr;
 
 fn main() {
     unsafe {
         let number_cstr = CString::new("number").unwrap();
         let number: *mut mpc_parser_t = mpc_new(number_cstr.as_ptr());
 
-        let grammar_string = CString::new("number   : /(0 |-?[1-9][0-9]*)/ ;").unwrap();
-        mpca_lang(0, grammar_string.as_ptr(), number);
+        let operator_cstr = CString::new("operator").unwrap();
+        let operator: *mut mpc_parser_t = mpc_new(operator_cstr.as_ptr());
+
+        let expr_cstr = CString::new("expr").unwrap();
+        let expr: *mut mpc_parser_t = mpc_new(expr_cstr.as_ptr());
+
+        let lispy_cstr = CString::new("lispy").unwrap();
+        let lispy: *mut mpc_parser_t = mpc_new(lispy_cstr.as_ptr());
+
+        let grammar_string = CString::new("
+              number   : /-?[1-9][0-9]*/ ;                   \
+              operator : '+' | '-' | '*' | '/' | '%' ;            \
+              expr     : <number> | '(' <operator> <expr>+ ')' ;  \
+              lispy    : /^/ <operator> <expr>+ /$/ ;             \
+            ").unwrap();
+
+        mpca_lang(0, grammar_string.as_ptr(), number, operator, expr, lispy);
 
         let mut rl = Editor::<()>::new();
         loop {
@@ -59,5 +74,7 @@ fn main() {
                 }
             }
         }
+        mpc_cleanup(4, number, operator, expr, lispy);
     }
 }
+
