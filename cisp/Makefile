@@ -3,7 +3,7 @@ CFLAGS = -Wall -Wextra -std=c99 # Use variables for abstraction :)
 .PHONY: all clean
 
 pretty:
-	uncrustify -c ~/unc_config --replace --no-backup *.c
+	uncrustify -c ./uncrustify_config --replace --no-backup *.c
 
 all: *.c
 	gcc -c $^ $(CFLAGS) 
@@ -12,7 +12,7 @@ prompt: prompt.c
 	gcc prompt.c -lreadline -o prompt.o $(CFLAGS) 
 
 parsing: parsing.c
-	gcc parsing.c mpc.c -lm -lreadline -o parsing.o $(CFLAGS) 
+	gcc -ggdb parsing.c mpc.c -lm -lreadline -o parsing.o $(CFLAGS) 
 
 error_handling: error_handling.c
 	gcc error_handling.c mpc.c -lm -lreadline -o error_handling.o $(CFLAGS) 
