@@ -11,3 +11,7 @@ gcc = "0.3.43"
 [dependencies]
 rustyline = "1.0.0"
 libc = "0.2"
+
+# LeakSanitizer doesn't work reliably with opt-level=0
+[profile.dev]
+opt-level = 1
