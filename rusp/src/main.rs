@@ -19,7 +19,10 @@ fn eval_op(x: i64, op: &str, y: i64) -> i64 {
         "*" => x * y,
         "/" => x / y,
         "%" => x % y,
-        _ => { println!("Unknown operator: {}", op); 0 }, // TODO fix C-style 0 return
+        _ => {
+            println!("Unknown operator: {}", op);
+            0
+        } // TODO fix C-style 0 return
     }
 }
 
@@ -46,7 +49,7 @@ fn main() {
               expr     : <number> | '(' <operator> <expr>+ ')' ;  \
               lispy    : /^/ <operator> <expr>+ /$/ ;             \
             \0"
-            .as_ptr() as *const _;
+        .as_ptr() as *const _;
 
         // Generate lispy language
         mpca_lang(0, grammar_string, number, operator, expr, lispy);
@@ -63,24 +66,20 @@ fn main() {
                     prompt_editor.add_history_entry(&line);
 
                     /* Initialize `result` with default members
-                       The Default::default() method provides a useful default for a type */
-                    let mut result = mpc_result_t {
-                        error: Default::default(),
-                        output: Default::default(),
-                        bindgen_union_field: 0u64,
-                    };
+                    The Default::default() method provides a useful default for a type */
+                    let mut result = std::mem::MaybeUninit::zeroed().assume_init();
                     let stdin_cstr = b"<stdin>\0".as_ptr() as *const _;
                     let input = CString::new(line).unwrap();
 
                     /* Parse input, writing in the result */
                     if (mpc_parse(stdin_cstr, input.as_ptr(), lispy, &mut result)) != 0 {
                         /* Success - print the AST */
-                        mpc_ast_print(*result.output.as_ref() as *mut mpc_ast_t);
-                        mpc_ast_delete(*result.output.as_ref() as *mut mpc_ast_t);
+                        mpc_ast_print(result.output as *mut mpc_ast_t);
+                        mpc_ast_delete(result.output as *mut mpc_ast_t);
                     } else {
                         /* Not parsed. Print error */
-                        mpc_err_print(*result.error.as_ref());
-                        mpc_err_delete(*result.error.as_ref());
+                        mpc_err_print(result.error);
+                        mpc_err_delete(result.error);
                     }
                 }
                 Err(ReadlineError::Interrupted) => {

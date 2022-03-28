@@ -1,1 +1,1 @@
-# build happens in build.rs using the gcc crate, which also tells rustc to link the compiled library against the final binary. If you want to see this library being used by C, go to ../../cisp from here (or https://github.com/medium-endian/crisp/tree/master/cisp)
+# build happens in build.rs using the cc crate, which also tells rustc to link the compiled library against the final binary. If you want to see this library being used by C, go to ../../cisp from here (or https://github.com/medium-endian/crisp/tree/master/cisp)
