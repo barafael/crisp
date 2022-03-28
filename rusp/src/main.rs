@@ -26,6 +26,19 @@ fn eval_op(x: i64, op: &str, y: i64) -> i64 {
     }
 }
 
+fn number_of_nodes(t: &mpc_ast_t) -> usize {
+    match t.children_num {
+        0 => 1,
+        n => {
+            let mut total = 1;
+            for i in 0..n {
+                total += number_of_nodes(unsafe { &**t.children.offset(i as isize) });
+            }
+            total
+        }
+    }
+}
+
 fn main() {
     // // println!("12-13: {}", eval_op(12i64, "-", 13i64));
     // All functions from mpc are considered unsafe
@@ -75,6 +88,8 @@ fn main() {
                     if (mpc_parse(stdin_cstr, input.as_ptr(), lispy, &mut result)) != 0 {
                         /* Success - print the AST */
                         mpc_ast_print(result.output as *mut mpc_ast_t);
+                        let reference = result.output as *const mpc_ast_t;
+                        println!("{}", number_of_nodes(&*reference));
                         mpc_ast_delete(result.output as *mut mpc_ast_t);
                     } else {
                         /* Not parsed. Print error */
