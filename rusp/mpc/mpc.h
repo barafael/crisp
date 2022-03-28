@@ -18,7 +18,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
-#include <math.h>
+//#include <math.h>
 #include <errno.h>
 #include <ctype.h>
 
