@@ -14,6 +14,15 @@ fn main() {
         .rust_target(RustTarget::Nightly)
         .emit_builtins()
         .derive_default(true)
+        .blocklist_function("strtold")
+        .blocklist_function("gcvt")
+        .blocklist_function("qecvt")
+        .blocklist_function("qfcvt")
+        .blocklist_function("qgcvt")
+        .blocklist_function("ecvt_r")
+        .blocklist_function("fcvt_r")
+        .blocklist_function("qfcvt_r")
+        .blocklist_function("qecvt_r")
         // The input header we would like to generate bindings for
         .header("mpc/mpc.h")
         // Finish the builder and generate the bindings

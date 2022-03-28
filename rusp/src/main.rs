@@ -44,7 +44,7 @@ fn main() {
 
         // Define grammar
         let grammar_string = b"
-              number   : /-?[1-9][0-9]*/ ;                   \
+              number   : /-?[1-9][0-9]*/ ;                        \
               operator : '+' | '-' | '*' | '/' | '%' ;            \
               expr     : <number> | '(' <operator> <expr>+ ')' ;  \
               lispy    : /^/ <operator> <expr>+ /$/ ;             \
