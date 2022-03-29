@@ -23,6 +23,11 @@ fn main() {
         .blocklist_function("fcvt_r")
         .blocklist_function("qfcvt_r")
         .blocklist_function("qecvt_r")
+        .blocklist_item("FP_NAN")
+        .blocklist_item("FP_INFINITE")
+        .blocklist_item("FP_ZERO")
+        .blocklist_item("FP_SUBNORMAL")
+        .blocklist_item("FP_NORMAL")
         // The input header we would like to generate bindings for
         .header("mpc/mpc.h")
         // Finish the builder and generate the bindings

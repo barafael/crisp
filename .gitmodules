@@ -1,0 +1,3 @@
+[submodule "rusp/mpc"]
+	path = rusp/mpc
+	url = https://github.com/orangeduck/mpc
