@@ -26,6 +26,31 @@ fn eval_op(x: i64, op: &str, y: i64) -> i64 {
     }
 }
 
+fn eval(t: &mpc_ast_t) -> i64 {
+    let number = b"number\0".as_ptr() as *const _;
+    let expr = b"expr\0".as_ptr() as *const _;
+
+    if unsafe { strstr(t.tag, number) } != std::ptr::null_mut() {
+        return unsafe { atoi(t.contents) } as i64;
+    }
+
+    let op = unsafe { &**t.children.offset(1) }.contents;
+    let op = unsafe { std::ffi::CStr::from_ptr(op).to_str().unwrap() };
+
+    let mut x = eval(unsafe { &**t.children.offset(2) });
+
+    let mut i = 3;
+    loop {
+        let tag = unsafe { &**t.children.offset(i as isize) }.tag;
+        if unsafe { strstr(tag, expr) } == std::ptr::null_mut() {
+            break;
+        }
+        x = eval_op(x, op, eval(unsafe { &**t.children.offset(i as isize) }));
+        i += 1;
+    }
+    x
+}
+
 fn number_of_nodes(t: &mpc_ast_t) -> usize {
     match t.children_num {
         0 => 1,
@@ -90,6 +115,7 @@ fn main() {
                         mpc_ast_print(result.output as *mut mpc_ast_t);
                         let reference = result.output as *const mpc_ast_t;
                         println!("{}", number_of_nodes(&*reference));
+                        println!("{}", eval(&*reference));
                         mpc_ast_delete(result.output as *mut mpc_ast_t);
                     } else {
                         /* Not parsed. Print error */
