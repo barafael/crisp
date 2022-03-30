@@ -5,33 +5,49 @@
 // #[allow(improper_ctypes)] // TODO: where to put this?
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
-extern crate rustyline;
-
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
 use std::ffi::CString;
 
-fn eval_op(x: i64, op: &str, y: i64) -> i64 {
+fn eval_op(x: LVal, op: &str, y: LVal) -> LVal {
+    if x.ty == LValTag::Err {
+        return x;
+    }
+    if y.ty == LValTag::Err {
+        return y;
+    }
     match op {
-        "+" => x + y,
-        "-" => x - y,
-        "*" => x * y,
-        "/" => x / y,
-        "%" => x % y,
+        "+" => lval_num(x.num + y.num),
+        "-" => lval_num(x.num - y.num),
+        "*" => lval_num(x.num * y.num),
+        "/" => {
+            if y.num == 0 {
+                lval_err(LValError::DivZero)
+            } else {
+                lval_num(x.num / y.num)
+            }
+        }
+        "%" => lval_num(x.num % y.num),
         _ => {
             println!("Unknown operator: {}", op);
-            0
+            lval_num(0)
         } // TODO fix C-style 0 return
     }
 }
 
-fn eval(t: &mpc_ast_t) -> i64 {
+fn eval(t: &mpc_ast_t) -> LVal {
     let number = b"number\0".as_ptr() as *const _;
     let expr = b"expr\0".as_ptr() as *const _;
 
     if unsafe { strstr(t.tag, number) } != std::ptr::null_mut() {
-        return unsafe { atoi(t.contents) } as i64;
+        unsafe { *__errno_location() = 0 };
+        let x = unsafe { strtol(t.contents, std::ptr::null_mut(), 10) };
+        return if unsafe { *__errno_location() } == ERANGE as i32 {
+            lval_err(LValError::BadNum)
+        } else {
+            lval_num(x)
+        };
     }
 
     let op = unsafe { &**t.children.offset(1) }.contents;
@@ -57,10 +73,72 @@ fn number_of_nodes(t: &mpc_ast_t) -> usize {
         n => {
             let mut total = 1;
             for i in 0..n {
+                // total += number_of_nodes(t->children[i]);
                 total += number_of_nodes(unsafe { &**t.children.offset(i as isize) });
             }
             total
         }
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[repr(C)]
+enum LValTag {
+    Num,
+    Err,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[repr(C)]
+enum LValError {
+    None,
+    DivZero,
+    BadOp,
+    BadNum,
+}
+
+fn lval_num(num: i64) -> LVal {
+    LVal {
+        ty: LValTag::Num,
+        num,
+        err: LValError::None,
+    }
+}
+
+fn lval_err(err: LValError) -> LVal {
+    LVal {
+        ty: LValTag::Err,
+        num: 0,
+        err,
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[repr(C)]
+struct LVal {
+    ty: LValTag,
+    num: i64,
+    err: LValError,
+}
+
+fn lval_print(v: LVal) {
+    match v.ty {
+        LValTag::Num => {
+            println!("{}", v.num);
+        }
+
+        LValTag::Err => match v.err {
+            LValError::DivZero => {
+                println!("Error: Division By Zero!");
+            }
+            LValError::BadOp => {
+                println!("Error: Invalid Operator!");
+            }
+            LValError::BadNum => {
+                println!("Error: Invalid Number!");
+            }
+            LValError::None => unreachable!(),
+        },
     }
 }
 
@@ -82,7 +160,7 @@ fn main() {
 
         // Define grammar
         let grammar_string = b"
-              number   : /-?[1-9][0-9]*/ ;                        \
+              number   : /-?[0-9]+/ ;                    \
               operator : '+' | '-' | '*' | '/' | '%' ;            \
               expr     : <number> | '(' <operator> <expr>+ ')' ;  \
               lispy    : /^/ <operator> <expr>+ /$/ ;             \
@@ -115,7 +193,8 @@ fn main() {
                         mpc_ast_print(result.output as *mut mpc_ast_t);
                         let reference = result.output as *const mpc_ast_t;
                         println!("{}", number_of_nodes(&*reference));
-                        println!("{}", eval(&*reference));
+                        let evaluated = eval(&*reference);
+                        lval_print(evaluated);
                         mpc_ast_delete(result.output as *mut mpc_ast_t);
                     } else {
                         /* Not parsed. Print error */
