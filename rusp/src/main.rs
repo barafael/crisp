@@ -40,7 +40,7 @@ fn eval(t: &mpc_ast_t) -> LVal {
     let number = b"number\0".as_ptr() as *const _;
     let expr = b"expr\0".as_ptr() as *const _;
 
-    if unsafe { strstr(t.tag, number) } != std::ptr::null_mut() {
+    if !unsafe { strstr(t.tag, number) }.is_null() {
         unsafe { *__errno_location() = 0 };
         let x = unsafe { strtol(t.contents, std::ptr::null_mut(), 10) };
         return if unsafe { *__errno_location() } == ERANGE as i32 {
@@ -58,7 +58,7 @@ fn eval(t: &mpc_ast_t) -> LVal {
     let mut i = 3;
     loop {
         let tag = unsafe { &**t.children.offset(i as isize) }.tag;
-        if unsafe { strstr(tag, expr) } == std::ptr::null_mut() {
+        if unsafe { strstr(tag, expr) }.is_null() {
             break;
         }
         x = eval_op(x, op, eval(unsafe { &**t.children.offset(i as isize) }));
