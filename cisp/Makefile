@@ -19,6 +19,10 @@ error_handling: error_handling.c
 
 error_handling_orig: error_handling_orig.c
 	gcc error_handling_orig.c mpc.c -lm -lreadline -o error_handling_orig.o $(CFLAGS) 
+
+s_expressions: s_expressions.c
+	gcc s_expressions.c -g mpc.c -lm -lreadline -o s_expressions.o $(CFLAGS)
+
 #main: main.o lib.o
 #	gcc -o $@ $< $(CFLAGS) # $@ = target, $< = input
 
