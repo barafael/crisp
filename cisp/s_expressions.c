@@ -128,12 +128,6 @@ lispval *lispval_read(mpc_ast_t *t) {
         if (strcmp(t->children[i]->contents, ")") == 0) {
             continue;
         }
-        if (strcmp(t->children[i]->contents, "}") == 0) {
-            continue;
-        }
-        if (strcmp(t->children[i]->contents, "{") == 0) {
-            continue;
-        }
         if (strcmp(t->children[i]->tag, "regex") == 0) {
             continue;
         }
@@ -170,7 +164,6 @@ void lispval_println(lispval *v) {
     lispval_print(v);
     putchar('\n');
 }
-
 
 lispval *lispval_pop(lispval *v, int i) {
     /* Find item at i */
@@ -290,12 +283,12 @@ int main(int argc, char **argv) {
     mpc_parser_t *Lispy  = mpc_new("lispy");
 
     /* Define the parsers with the following language */
-    mpca_lang(MPCA_LANG_DEFAULT, "                                               \
+    mpca_lang(MPCA_LANG_DEFAULT, "                           \
               number   : /(-?[0-9]+)/ ;                      \
-              symbol   : '+' | '-' | '*' | '/' | '%' ;            \
-              sexpr    : '(' <expr>* ')' ;  \
-              expr     : <number> | <symbol> | <sexpr> ;  \
-              lispy    : /^/ <expr>* /$/ ;             \
+              symbol   : '+' | '-' | '*' | '/' | '%' ;       \
+              sexpr    : '(' <expr>* ')' ;                   \
+              expr     : <number> | <symbol> | <sexpr> ;     \
+              lispy    : /^/ <expr>* /$/ ;                   \
             ",
               Number, Symbol, Sexpr, Expr, Lispy);
 
@@ -306,13 +299,9 @@ int main(int argc, char **argv) {
     puts("Example expression: * 2 2 or * (+ 1 5) (* 1 3 7)");
 
     while (1) {
-        //char *input = readline("cispy >> ");
+        char *input = readline("cispy >> ");
 
-        //add_history(input);
-
-        char *expression = "* 2 2";
-        char *input      = malloc(5);
-        strcpy(input, expression);
+        add_history(input);
 
         /* Attempt to parse the input */
         mpc_result_t r;
