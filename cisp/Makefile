@@ -23,6 +23,9 @@ error_handling_orig: error_handling_orig.c
 s_expressions: s_expressions.c
 	gcc s_expressions.c -g mpc.c -lm -lreadline -o s_expressions.o $(CFLAGS)
 
+s_expressions.orig: s_expressions.orig.c
+	gcc s_expressions.orig.c -g mpc.c -lm -lreadline -o s_expressions.orig.o $(CFLAGS)
+
 #main: main.o lib.o
 #	gcc -o $@ $< $(CFLAGS) # $@ = target, $< = input
 

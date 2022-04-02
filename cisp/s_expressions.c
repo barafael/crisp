@@ -303,6 +303,9 @@ int main(int argc, char **argv) {
 
         add_history(input);
 
+        //char *input = malloc(6);
+        //strcpy(input, "* 2 2");
+
         /* Attempt to parse the input */
         mpc_result_t r;
         if (mpc_parse("<stdin>", input, Lispy, &r)) {
