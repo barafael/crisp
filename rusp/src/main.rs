@@ -29,6 +29,7 @@ enum Tag {
     Err,
     Sym,
     Sexpr,
+    Qexpr,
 }
 
 /* Construct a number */
@@ -66,18 +67,28 @@ unsafe fn lval_sexpr() -> *mut LispValue {
     v
 }
 
+/* Construct new empty qexpr */
+/* A pointer to a new empty Qexpr lval */
+unsafe fn lval_qexpr() -> *mut LispValue {
+    let v = malloc(size_of::<LispValue>() as u64) as *mut LispValue;
+    (*v).ty = Tag::Qexpr;
+    (*v).count = 0;
+    (*v).cell = null_mut();
+    v
+}
+
 /* Clean up a lispval */
 unsafe fn lval_del(val: *mut LispValue) {
     match (*val).ty {
         Tag::Num => {}
         Tag::Err => free((*val).err as *mut c_void),
         Tag::Sym => free((*val).sym as *mut c_void),
-        Tag::Sexpr => {
+        Tag::Sexpr | Tag::Qexpr => {
             /* If Sexpr then delete all elements inside */
             for i in 0..(*val).count {
                 lval_del(*(*val).cell.add(i as usize));
             }
-            //free(*(*val).cell as *mut c_void);
+            //free((*val).cell as *mut c_void);
         }
     }
     /* Free the entire struct finally */
@@ -91,7 +102,7 @@ unsafe fn lval_add(val: *mut LispValue, x: *mut LispValue) -> *mut LispValue {
         (size_of::<*mut LispValue>() as u64) * (*val).count as u64,
     ) as *mut *mut LispValue;
     //*(*val).cell.offset((*val).count as isize - 1) = x;
-    let ref mut fresh = *(*val).cell.offset(((*val).count - 1) as isize);
+    let fresh = &mut (*(*val).cell.add((*val).count - 1));
     *fresh = x;
     val
 }
@@ -146,12 +157,13 @@ unsafe fn lval_print(v: *mut LispValue) {
             printf(b"%s\0" as *const u8 as *const c_char, (*v).sym);
         }
         Tag::Sexpr => lval_expr_print(v, '(' as c_char, ')' as c_char),
+        Tag::Qexpr => lval_expr_print(v, '{' as c_char, '}' as c_char),
     };
 }
 
 unsafe fn builtin_op(a: *mut LispValue, op: *mut c_char) -> *mut LispValue {
     for i in 0..(*a).count {
-        if (**(*a).cell.offset(i as isize)).ty != Tag::Num {
+        if (**(*a).cell.add(i)).ty != Tag::Num {
             lval_del(a);
             return lval_err(b"Cannot operate on non-number!\0" as *const u8 as *mut c_char);
         }
@@ -196,6 +208,131 @@ unsafe fn builtin_op(a: *mut LispValue, op: *mut c_char) -> *mut LispValue {
     x
 }
 
+unsafe fn builtin_head(a: *mut LispValue) -> *mut LispValue {
+    /* Check error conditions */
+    if (*a).count != 1 {
+        lval_del(a);
+        return lval_err(
+            b"Function 'head' passed too many arguments!\0" as *const u8 as *mut c_char,
+        );
+    }
+    if (**(*a).cell.offset(0)).ty != Tag::Qexpr {
+        lval_del(a);
+        return lval_err(b"Function 'head' passed incorrect type!\0" as *const u8 as *mut c_char);
+    }
+    if (**(*a).cell.offset(0)).count == 0 {
+        lval_del(a);
+        return lval_err(b"Function 'head' passed {}!\0" as *const u8 as *mut c_char);
+    }
+
+    /* Take first argument */
+    let v = lval_take(a, 0);
+
+    /* Delete all elements that are not head and return */
+    while (*v).count > 1 {
+        lval_del(lval_pop(v, 1));
+    }
+    v
+}
+
+unsafe fn builtin_tail(a: *mut LispValue) -> *mut LispValue {
+    /* Check error conditions */
+    if (*a).count != 1 {
+        lval_del(a);
+        return lval_err(
+            b"Function 'tail' passed too many arguments!\0" as *const u8 as *mut c_char,
+        );
+    }
+    if (**(*a).cell.offset(0)).ty != Tag::Qexpr {
+        lval_del(a);
+        return lval_err(b"Function 'tail' passed incorrect type!\0" as *const u8 as *mut c_char);
+    }
+    if (**(*a).cell.offset(0)).count == 0 {
+        lval_del(a);
+        return lval_err(b"Function 'tail' passed {}!\0" as *const u8 as *mut c_char);
+    }
+    /* Take first argument */
+    let v = lval_take(a, 0);
+
+    /* Delete first element and return */
+    lval_del(lval_pop(v, 0));
+    v
+}
+
+unsafe fn builtin_list(a: *mut LispValue) -> *mut LispValue {
+    (*a).ty = Tag::Qexpr;
+    a
+}
+
+unsafe fn builtin_eval(a: *mut LispValue) -> *mut LispValue {
+    if (*a).count != 1 {
+        lval_del(a);
+        return lval_err(
+            b"Function 'eval' passed too many arguments!\0" as *const u8 as *mut c_char,
+        );
+    }
+    if (**(*a).cell.offset(0)).ty != Tag::Qexpr {
+        lval_del(a);
+        return lval_err(b"Function 'eval' passed incorrect type!\0" as *const u8 as *mut c_char);
+    }
+
+    let x = lval_take(a, 0);
+    (*x).ty = Tag::Sexpr;
+    lval_eval(x)
+}
+
+unsafe fn builtin_join(a: *mut LispValue) -> *mut LispValue {
+    for i in 0..(*a).count {
+        if (**(*a).cell.add(i)).ty != Tag::Qexpr {
+            lval_del(a);
+            return lval_err(
+                b"Function 'join' passed incorrect type!\0" as *const u8 as *mut c_char,
+            );
+        }
+    }
+
+    let mut x = lval_pop(a, 0);
+
+    while (*a).count != 0 {
+        x = lval_join(x, lval_pop(a, 0));
+    }
+
+    lval_del(a);
+    x
+}
+
+unsafe fn lval_join(mut x: *mut LispValue, y: *mut LispValue) -> *mut LispValue {
+    while (*y).count != 0 {
+        x = lval_add(x, lval_pop(y, 0));
+    }
+
+    lval_del(y);
+    x
+}
+
+unsafe fn builtin(a: *mut LispValue, func: *mut c_char) -> *mut LispValue {
+    if (strcmp(b"list\0" as *const u8 as *const c_char, func)) == 0 {
+        return builtin_list(a);
+    }
+    if (strcmp(b"head\0" as *const u8 as *const c_char, func)) == 0 {
+        return builtin_head(a);
+    }
+    if (strcmp(b"tail\0" as *const u8 as *const c_char, func)) == 0 {
+        return builtin_tail(a);
+    }
+    if (strcmp(b"join\0" as *const u8 as *const c_char, func)) == 0 {
+        return builtin_join(a);
+    }
+    if (strcmp(b"eval\0" as *const u8 as *const c_char, func)) == 0 {
+        return builtin_eval(a);
+    }
+    if !strstr(b"+-/*\0" as *const u8 as *const c_char, func).is_null() {
+        return builtin_op(a, func);
+    }
+    lval_del(a);
+    lval_err(b"Unknown Function!\0" as *const u8 as *mut c_char)
+}
+
 unsafe fn lval_eval_sexpr(v: *mut LispValue) -> *mut LispValue {
     /* Evaluate Children */
     for i in 0..(*v).count {
@@ -227,7 +364,7 @@ unsafe fn lval_eval_sexpr(v: *mut LispValue) -> *mut LispValue {
     }
 
     /* Call builtin with operator */
-    let result = builtin_op(v, (*f).sym);
+    let result = builtin(v, (*f).sym);
     lval_del(f);
     result
 }
@@ -270,8 +407,11 @@ unsafe fn lval_read(t: *mut mpc_ast_t) -> *mut LispValue {
 
     let root = b">\0".as_ptr() as *const i8;
     let sexpr = b"sexpr\0".as_ptr() as *const i8;
+    let qexpr = b"qexpr\0".as_ptr() as *const i8;
     let opening = b"(\0".as_ptr() as *const i8;
     let closing = b")\0".as_ptr() as *const i8;
+    let opening_curly = b"{\0".as_ptr() as *const i8;
+    let closing_curly = b"}\0".as_ptr() as *const i8;
     let regex = b"regex\0".as_ptr() as *const i8;
 
     let mut x = null_mut() as *mut LispValue;
@@ -281,12 +421,21 @@ unsafe fn lval_read(t: *mut mpc_ast_t) -> *mut LispValue {
     if !strstr((*t).tag, sexpr).is_null() {
         x = lval_sexpr();
     }
+    if !strstr((*t).tag, qexpr).is_null() {
+        x = lval_qexpr();
+    }
 
     for i in 0..(*t).children_num {
         if strcmp((**(*t).children.offset(i as isize)).contents, opening) == 0 {
             continue;
         }
         if strcmp((**(*t).children.offset(i as isize)).contents, closing) == 0 {
+            continue;
+        }
+        if strcmp((**(*t).children.offset(i as isize)).contents, opening_curly) == 0 {
+            continue;
+        }
+        if strcmp((**(*t).children.offset(i as isize)).contents, closing_curly) == 0 {
             continue;
         }
         if strcmp((**(*t).children.offset(i as isize)).tag, regex) == 0 {
@@ -311,21 +460,33 @@ fn main() {
         let number: *mut mpc_parser_t = mpc_new(b"number\0".as_ptr() as *const _);
         let symbol: *mut mpc_parser_t = mpc_new(b"symbol\0".as_ptr() as *const _);
         let sexpr: *mut mpc_parser_t = mpc_new(b"sexpr\0".as_ptr() as *const _);
+        let qexpr: *mut mpc_parser_t = mpc_new(b"qexpr\0".as_ptr() as *const _);
         let expr: *mut mpc_parser_t = mpc_new(b"expr\0".as_ptr() as *const _);
         let lispy: *mut mpc_parser_t = mpc_new(b"lispy\0".as_ptr() as *const _);
 
         // Define grammar
         let grammar_string = b"
-              number : /-?[0-9]+/ ;                       \
-              symbol : '+' | '-' | '*' | '/' | '%' ;      \
-              sexpr  : '(' <expr>* ')' ;                  \
-              expr   : <number> | <symbol> | <sexpr> ;    \
-              lispy  : /^/ <expr>* /$/ ;                  \
+              number : /-?[0-9]+/ ;                                           \
+              symbol : \"list\" | \"head\" | \"tail\" | \"join\" | \"eval\" | \
+                        '+' | '-' | '*' | '/' | '%' ;                         \
+              sexpr  : '(' <expr>* ')' ;                                      \
+              qexpr  : '{' <expr>* '}' ;                                      \
+              expr   : <number> | <symbol> | <sexpr> | <qexpr> ;              \
+              lispy  : /^/ <expr>* /$/ ;                                      \
             \0"
         .as_ptr() as *const _;
 
         // Generate lispy language
-        mpca_lang(0, grammar_string, number, symbol, sexpr, expr, lispy);
+        mpca_lang(
+            MPCA_LANG_DEFAULT as i32,
+            grammar_string,
+            number,
+            symbol,
+            sexpr,
+            qexpr,
+            expr,
+            lispy,
+        );
 
         let mut prompt_editor = Editor::<()>::new();
         loop {
@@ -357,6 +518,7 @@ fn main() {
 
                         lval_println(evaluated);
                         lval_del(evaluated);
+
                         mpc_ast_delete(result.output as *mut mpc_ast_t);
                     } else {
                         /* Not parsed. Print error */
@@ -379,6 +541,6 @@ fn main() {
             }
         }
         /* Clean up the malloc'd ressources */
-        mpc_cleanup(5, number, symbol, sexpr, expr, lispy);
+        mpc_cleanup(6, number, symbol, sexpr, qexpr, expr, lispy);
     }
 }
