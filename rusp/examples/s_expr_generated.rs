@@ -43,7 +43,7 @@ unsafe fn lval_num(num: c_long) -> *mut LispValue {
 unsafe fn lval_err(err: *mut c_char) -> *mut LispValue {
     let v: *mut LispValue = malloc(size_of::<LispValue>() as c_ulong) as *mut LispValue;
     (*v).ty = Tag::Err;
-    (*v).err = malloc(strlen(err).wrapping_add(1 as c_int as c_ulong)) as *mut c_char;
+    (*v).err = malloc(strlen(err).wrapping_add(1)) as *mut c_char;
     strcpy((*v).err, err);
     v
 }
@@ -52,7 +52,7 @@ unsafe fn lval_err(err: *mut c_char) -> *mut LispValue {
 unsafe fn lval_sym(sym: *mut c_char) -> *mut LispValue {
     let v: *mut LispValue = malloc(size_of::<LispValue>() as c_ulong) as *mut LispValue;
     (*v).ty = Tag::Sym;
-    (*v).sym = malloc(strlen(sym).wrapping_add(1 as c_int as c_ulong)) as *mut c_char;
+    (*v).sym = malloc(strlen(sym).wrapping_add(1)) as *mut c_char;
     strcpy((*v).sym, sym);
     v
 }
@@ -61,8 +61,8 @@ unsafe fn lval_sym(sym: *mut c_char) -> *mut LispValue {
 unsafe fn lval_sexpr() -> *mut LispValue {
     let v: *mut LispValue = malloc(size_of::<LispValue>() as c_ulong) as *mut LispValue;
     (*v).ty = Tag::Sexpr;
-    (*v).count = 0 as c_int;
-    (*v).cell = 0 as *mut *mut LispValue;
+    (*v).count = 0;
+    (*v).cell = null_mut();
     v
 }
 
@@ -90,7 +90,7 @@ unsafe fn lval_add(val: *mut LispValue, x: *mut LispValue) -> *mut LispValue {
         (*val).cell as *mut c_void,
         (size_of::<*mut LispValue>() as c_ulong).wrapping_mul((*val).count as c_ulong),
     ) as *mut *mut LispValue;
-    let ref mut fresh = *(*val).cell.offset(((*val).count - 1 as c_int) as isize);
+    let fresh = &mut (*(*val).cell.offset(((*val).count - 1) as isize));
     *fresh = x;
     val
 }
@@ -101,9 +101,8 @@ unsafe fn lval_pop(v: *mut LispValue, i: c_int) -> *mut LispValue {
     /* Shift memory after the item at i over the top */
     memmove(
         &mut *(*v).cell.offset(i as isize) as *mut *mut LispValue as *mut c_void,
-        &mut *(*v).cell.offset((i + 1 as c_int) as isize) as *mut *mut LispValue as *const c_void,
-        (size_of::<*mut LispValue>() as c_ulong)
-            .wrapping_mul(((*v).count - i - 1 as c_int) as c_ulong),
+        &mut *(*v).cell.offset((i + 1) as isize) as *mut *mut LispValue as *const c_void,
+        (size_of::<*mut LispValue>() as c_ulong).wrapping_mul(((*v).count - i - 1) as c_ulong),
     );
 
     (*v).count -= 1;
@@ -124,10 +123,10 @@ unsafe fn lval_take(v: *mut LispValue, i: c_int) -> *mut LispValue {
 /* Print an lispval */
 unsafe fn lval_expr_print(v: *mut LispValue, open: c_char, close: c_char) {
     putchar(open as c_int);
-    let mut i: c_int = 0 as c_int;
+    let mut i: c_int = 0;
     while i < (*v).count {
         lval_print(*(*v).cell.offset(i as isize));
-        if i != (*v).count - 1 as c_int {
+        if i != (*v).count - 1 {
             putchar(' ' as i32);
         }
         i += 1
@@ -151,48 +150,47 @@ unsafe fn lval_print(v: *mut LispValue) {
 }
 
 unsafe fn builtin_op(a: *mut LispValue, op: *mut c_char) -> *mut LispValue {
-    let mut i: c_int = 0 as c_int;
+    let mut i: c_int = 0;
     while i < (*a).count {
         if (**(*a).cell.offset(i as isize)).ty as c_uint != Tag::Num as c_int as c_uint {
             lval_del(a);
             return lval_err(
-                b"Cannot operate on non-number!\x00" as *const u8 as *const c_char as *mut c_char,
+                b"Cannot operate on non-number!\0" as *const u8 as *const c_char as *mut c_char,
             );
         }
         i += 1
     }
 
     /* Pop the first element */
-    let mut x: *mut LispValue = lval_pop(a, 0 as c_int);
+    let mut x: *mut LispValue = lval_pop(a, 0);
 
     /* If no arguments and sub then perform unary negation */
-    if strcmp(op, b"-\x00" as *const u8 as *const c_char) == 0 as c_int && (*a).count == 0 as c_int
-    {
+    if strcmp(op, b"-\0" as *const u8 as *const c_char) == 0 && (*a).count == 0 {
         (*x).num = -(*x).num
     }
 
     /* While there are still elements remaining */
-    while (*a).count > 0 as c_int {
+    while (*a).count > 0 {
         /* Pop the next element */
-        let y: *mut LispValue = lval_pop(a, 0 as c_int);
+        let y: *mut LispValue = lval_pop(a, 0);
 
         /* Perform operation */
-        if strcmp(op, b"+\x00" as *const u8 as *const c_char) == 0 as c_int {
+        if strcmp(op, b"+\0" as *const u8 as *const c_char) == 0 {
             (*x).num += (*y).num
         }
-        if strcmp(op, b"-\x00" as *const u8 as *const c_char) == 0 as c_int {
+        if strcmp(op, b"-\0" as *const u8 as *const c_char) == 0 {
             (*x).num -= (*y).num
         }
-        if strcmp(op, b"*\x00" as *const u8 as *const c_char) == 0 as c_int {
+        if strcmp(op, b"*\0" as *const u8 as *const c_char) == 0 {
             (*x).num *= (*y).num
         }
-        if !(strcmp(op, b"/\x00" as *const u8 as *const c_char) == 0 as c_int) {
+        if strcmp(op, b"/\0" as *const u8 as *const c_char) != 0 {
             continue;
         }
-        if (*y).num == 0 as c_int as c_long {
+        if (*y).num == 0 {
             lval_del(x);
             lval_del(y);
-            x = lval_err(b"Division by zero!\x00" as *const u8 as *const c_char as *mut c_char);
+            x = lval_err(b"Division by zero!\0" as *const u8 as *const c_char as *mut c_char);
             break;
         } else {
             (*x).num /= (*y).num;
@@ -204,14 +202,14 @@ unsafe fn builtin_op(a: *mut LispValue, op: *mut c_char) -> *mut LispValue {
 
 unsafe fn lval_eval_sexpr(v: *mut LispValue) -> *mut LispValue {
     /* Evaluate children */
-    let mut i: c_int = 0 as c_int;
+    let mut i: c_int = 0;
     while i < (*v).count {
-        let ref mut fresh1 = *(*v).cell.offset(i as isize);
-        *fresh1 = lval_eval(*(*v).cell.offset(i as isize));
+        let fresh = &mut (*(*v).cell.offset(i as isize));
+        *fresh = lval_eval(*(*v).cell.offset(i as isize));
         i += 1
     }
     /* Error Checking */
-    let mut i_0: c_int = 0 as c_int;
+    let mut i_0: c_int = 0;
     while i_0 < (*v).count {
         if (**(*v).cell.offset(i_0 as isize)).ty as c_uint == Tag::Err as c_int as c_uint {
             return lval_take(v, i_0);
@@ -219,21 +217,21 @@ unsafe fn lval_eval_sexpr(v: *mut LispValue) -> *mut LispValue {
         i_0 += 1
     }
     /* Empty expression () */
-    if (*v).count == 0 as c_int {
+    if (*v).count == 0 {
         return v;
     }
     /* Single expression */
-    if (*v).count == 1 as c_int {
-        return lval_take(v, 0 as c_int);
+    if (*v).count == 1 {
+        return lval_take(v, 0);
     }
 
     /* Remaining must be sexpr, first of it must be a symbol */
-    let f: *mut LispValue = lval_pop(v, 0 as c_int);
+    let f: *mut LispValue = lval_pop(v, 0);
     if (*f).ty as c_uint != Tag::Sym as c_int as c_uint {
         lval_del(f);
         lval_del(v);
         return lval_err(
-            b"S-Expression does not start with symbol!\x00" as *const u8 as *const c_char
+            b"S-Expression does not start with symbol!\0" as *const u8 as *const c_char
                 as *mut c_char,
         );
     }
@@ -255,7 +253,7 @@ unsafe fn lval_eval(v: *mut LispValue) -> *mut LispValue {
         return lval_eval_sexpr(v);
     }
     /* Treat all other types the same */
-    return v;
+    v
 }
 
 unsafe fn lval_read_num(ast: *mut mpc_ast_t) -> *mut LispValue {
