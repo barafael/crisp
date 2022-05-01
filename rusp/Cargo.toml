@@ -2,7 +2,7 @@
 name = "rusp"
 version = "0.1.0"
 build = "build.rs"
-authors = ["Rafael Bachmann <triolenzunge@gmail.com>"]
+authors = ["Rafael Bachmann <rafael.bachmann.93@gmail.com>"]
 edition = "2021"
 
 [build-dependencies]
@@ -11,7 +11,7 @@ cc = "1.0.73"
 
 [dependencies]
 rustyline = "9.1.2"
-libc = "0.2.121"
+libc = "0.2.125"
 
 # LeakSanitizer doesn't work reliably with opt-level=0
 [profile.dev]
