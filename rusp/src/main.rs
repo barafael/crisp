@@ -496,7 +496,7 @@ fn main() {
             lispy,
         );
 
-        let mut prompt_editor = Editor::<()>::new();
+        let mut prompt_editor = Editor::<()>::new().expect("Failed to open prompt");
         loop {
             let raw_input = prompt_editor.readline("lispy >> ");
             //let raw_input = Ok::<String, ReadlineError>("+ 2 2".into());
