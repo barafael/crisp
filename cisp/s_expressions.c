@@ -12,12 +12,12 @@ typedef enum { LISPVAL_NUM, LISPVAL_ERR, LISPVAL_SYM, LISPVAL_SEXPR } expr_type;
 /* lispval struct */
 typedef struct lispval {
     expr_type type;
-    long      num;
+    long num;
     /* String for error */
     char *err;
     char *symbol;
     /* Counter and pointer for list of "lval*" */
-    int              count;
+    int count;
     struct lispval **cell;
 } lispval;
 
@@ -26,10 +26,10 @@ typedef struct lispval_union {
     expr_type type;
     union {
         char *err;
-        long  num;
+        long num;
         char *symbol;
         struct lisplist {
-            int       count;
+            int count;
             lispval **cell;
         } lisplist;
     } content;
@@ -77,14 +77,16 @@ lispval *lispval_sexpr(void) {
 /* Clean up a lispval */
 void lispval_del(lispval *val) {
     switch (val->type) {
-        case LISPVAL_NUM: break;
+    case LISPVAL_NUM: break;
 
-        case LISPVAL_ERR: free(val->err); break;
-        case LISPVAL_SYM: free(val->symbol); break;
+    case LISPVAL_ERR: free(val->err); break;
+    case LISPVAL_SYM: free(val->symbol); break;
 
-        /* If Sexpr then delete all elements inside */
-        case LISPVAL_SEXPR:
-            for (int i = 0; i < val->count; i++) { lispval_del(val->cell[i]); }
+    /* If Sexpr then delete all elements inside */
+    case LISPVAL_SEXPR:
+        for (int i = 0; i < val->count; i++) {
+            lispval_del(val->cell[i]);
+        }
     }
     /* Free the entire struct finally */
     free(val);
@@ -153,10 +155,10 @@ void lispval_expr_print(lispval *v, char open, char close) {
 
 void lispval_print(lispval *v) {
     switch (v->type) {
-        case LISPVAL_NUM: printf("%li", v->num); break;
-        case LISPVAL_ERR: printf("Error: %s", v->err); break;
-        case LISPVAL_SYM: printf("%s", v->symbol); break;
-        case LISPVAL_SEXPR: lispval_expr_print(v, '(', ')'); break;
+    case LISPVAL_NUM: printf("%li", v->num); break;
+    case LISPVAL_ERR: printf("Error: %s", v->err); break;
+    case LISPVAL_SYM: printf("%s", v->symbol); break;
+    case LISPVAL_SEXPR: lispval_expr_print(v, '(', ')'); break;
     }
 }
 
@@ -189,7 +191,9 @@ lispval *builtin_op(lispval *a, char *op);
 
 lispval *lispval_eval_sexpr(lispval *v) {
     /* Evaluate children */
-    for (int i = 0; i < v->count; i++) { v->cell[i] = lispval_eval(v->cell[i]); }
+    for (int i = 0; i < v->count; i++) {
+        v->cell[i] = lispval_eval(v->cell[i]);
+    }
 
     /* Error Checking */
     for (int i = 0; i < v->count; i++) {

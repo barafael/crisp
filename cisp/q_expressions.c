@@ -22,28 +22,35 @@ void add_history(char *unused) {
 #endif
 
 /* Add QEXPR as possible lval type */
-enum { LVAL_ERR, LVAL_NUM, LVAL_SYM, LVAL_SEXPR, LVAL_QEXPR };
+enum {
+    LVAL_ERR,
+    LVAL_NUM,
+    LVAL_SYM,
+    LVAL_SEXPR,
+    LVAL_QEXPR
+};
 
-typedef struct lval {
-    int           type;
-    long          num;
-    char         *err;
-    char         *sym;
-    int           count;
+typedef struct lval
+{
+    int type;
+    long num;
+    char *err;
+    char *sym;
+    int count;
     struct lval **cell;
 } lval;
 
 lval *lval_num(long x) {
     lval *v = malloc(sizeof(lval));
     v->type = LVAL_NUM;
-    v->num  = x;
+    v->num = x;
     return v;
 }
 
 lval *lval_err(char *m) {
     lval *v = malloc(sizeof(lval));
     v->type = LVAL_ERR;
-    v->err  = malloc(strlen(m) + 1);
+    v->err = malloc(strlen(m) + 1);
     strcpy(v->err, m);
     return v;
 }
@@ -51,42 +58,49 @@ lval *lval_err(char *m) {
 lval *lval_sym(char *s) {
     lval *v = malloc(sizeof(lval));
     v->type = LVAL_SYM;
-    v->sym  = malloc(strlen(s) + 1);
+    v->sym = malloc(strlen(s) + 1);
     strcpy(v->sym, s);
     return v;
 }
 
 lval *lval_sexpr(void) {
-    lval *v  = malloc(sizeof(lval));
-    v->type  = LVAL_SEXPR;
+    lval *v = malloc(sizeof(lval));
+    v->type = LVAL_SEXPR;
     v->count = 0;
-    v->cell  = NULL;
+    v->cell = NULL;
     return v;
 }
 
 /* A pointer to a new empty Qexpr lval */
 lval *lval_qexpr(void) {
-    lval *v  = malloc(sizeof(lval));
-    v->type  = LVAL_QEXPR;
+    lval *v = malloc(sizeof(lval));
+    v->type = LVAL_QEXPR;
     v->count = 0;
-    v->cell  = NULL;
+    v->cell = NULL;
     return v;
 }
 
 void lval_del(lval *v) {
 
     switch (v->type) {
-        case LVAL_NUM: break;
-        case LVAL_ERR: free(v->err); break;
-        case LVAL_SYM: free(v->sym); break;
+    case LVAL_NUM:
+        break;
+    case LVAL_ERR:
+        free(v->err);
+        break;
+    case LVAL_SYM:
+        free(v->sym);
+        break;
 
-        /* If Qexpr or Sexpr then delete all elements inside */
-        case LVAL_QEXPR:
-        case LVAL_SEXPR:
-            for (int i = 0; i < v->count; i++) { lval_del(v->cell[i]); }
-            /* Also free the memory allocated to contain the pointers */
-            free(v->cell);
-            break;
+    /* If Qexpr or Sexpr then delete all elements inside */
+    case LVAL_QEXPR:
+    case LVAL_SEXPR:
+        for (int i = 0; i < v->count; i++) {
+            lval_del(v->cell[i]);
+        }
+        /* Also free the memory allocated to contain the pointers */
+        free(v->cell);
+        break;
     }
 
     free(v);
@@ -94,7 +108,7 @@ void lval_del(lval *v) {
 
 lval *lval_add(lval *v, lval *x) {
     v->count++;
-    v->cell               = realloc(v->cell, sizeof(lval *) * v->count);
+    v->cell = realloc(v->cell, sizeof(lval *) * v->count);
     v->cell[v->count - 1] = x;
     return v;
 }
@@ -109,7 +123,9 @@ lval *lval_pop(lval *v, int i) {
 
 lval *lval_join(lval *x, lval *y) {
 
-    while (y->count) { x = lval_add(x, lval_pop(y, 0)); }
+    while (y->count) {
+        x = lval_add(x, lval_pop(y, 0));
+    }
 
     lval_del(y);
     return x;
@@ -138,11 +154,21 @@ void lval_expr_print(lval *v, char open, char close) {
 
 void lval_print(lval *v) {
     switch (v->type) {
-        case LVAL_NUM: printf("%li", v->num); break;
-        case LVAL_ERR: printf("Error: %s", v->err); break;
-        case LVAL_SYM: printf("%s", v->sym); break;
-        case LVAL_SEXPR: lval_expr_print(v, '(', ')'); break;
-        case LVAL_QEXPR: lval_expr_print(v, '{', '}'); break;
+    case LVAL_NUM:
+        printf("%li", v->num);
+        break;
+    case LVAL_ERR:
+        printf("Error: %s", v->err);
+        break;
+    case LVAL_SYM:
+        printf("%s", v->sym);
+        break;
+    case LVAL_SEXPR:
+        lval_expr_print(v, '(', ')');
+        break;
+    case LVAL_QEXPR:
+        lval_expr_print(v, '{', '}');
+        break;
     }
 }
 
@@ -151,10 +177,11 @@ void lval_println(lval *v) {
     putchar('\n');
 }
 
-#define LASSERT(args, cond, err)                                                                                       \
-    if (!(cond)) {                                                                                                     \
-        lval_del(args);                                                                                                \
-        return lval_err(err);                                                                                          \
+#define LASSERT(args, cond, err) \
+    if (!(cond))                 \
+    {                            \
+        lval_del(args);          \
+        return lval_err(err);    \
     }
 
 lval *lval_eval(lval *v);
@@ -170,7 +197,9 @@ lval *builtin_head(lval *a) {
     LASSERT(a, a->cell[0]->count != 0, "Function 'head' passed {}.");
 
     lval *v = lval_take(a, 0);
-    while (v->count > 1) { lval_del(lval_pop(v, 1)); }
+    while (v->count > 1) {
+        lval_del(lval_pop(v, 1));
+    }
     return v;
 }
 
@@ -201,7 +230,9 @@ lval *builtin_join(lval *a) {
 
     lval *x = lval_pop(a, 0);
 
-    while (a->count) { x = lval_join(x, lval_pop(a, 0)); }
+    while (a->count) {
+        x = lval_join(x, lval_pop(a, 0));
+    }
 
     lval_del(a);
     return x;
@@ -276,7 +307,9 @@ lval *builtin(lval *a, char *func) {
 
 lval *lval_eval_sexpr(lval *v) {
 
-    for (int i = 0; i < v->count; i++) { v->cell[i] = lval_eval(v->cell[i]); }
+    for (int i = 0; i < v->count; i++) {
+        v->cell[i] = lval_eval(v->cell[i]);
+    }
 
     for (int i = 0; i < v->count; i++) {
         if (v->cell[i]->type == LVAL_ERR) {
@@ -313,7 +346,7 @@ lval *lval_eval(lval *v) {
 }
 
 lval *lval_read_num(mpc_ast_t *t) {
-    errno  = 0;
+    errno = 0;
     long x = strtol(t->contents, NULL, 10);
     return errno != ERANGE ? lval_num(x) : lval_err("invalid number");
 }
@@ -364,10 +397,10 @@ int main(int argc, char **argv) {
 
     mpc_parser_t *Number = mpc_new("number");
     mpc_parser_t *Symbol = mpc_new("symbol");
-    mpc_parser_t *Sexpr  = mpc_new("sexpr");
-    mpc_parser_t *Qexpr  = mpc_new("qexpr");
-    mpc_parser_t *Expr   = mpc_new("expr");
-    mpc_parser_t *Lispy  = mpc_new("lispy");
+    mpc_parser_t *Sexpr = mpc_new("sexpr");
+    mpc_parser_t *Qexpr = mpc_new("qexpr");
+    mpc_parser_t *Expr = mpc_new("expr");
+    mpc_parser_t *Lispy = mpc_new("lispy");
 
     mpca_lang(MPCA_LANG_DEFAULT, "                                                    \
       number : /-?[0-9]+/ ;                              \
