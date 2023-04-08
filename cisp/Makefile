@@ -29,6 +29,9 @@ s_expressions.orig: s_expressions.orig.c
 q_expressions: q_expressions.c
 	gcc q_expressions.c -g mpc.c -lm -lreadline -o q_expressions.o $(CFLAGS)
 
+variables: variables.c
+	gcc variables.c -g mpc.c -lm -lreadline -o variables.o $(CFLAGS)
+
 #main: main.o lib.o
 #	gcc -o $@ $< $(CFLAGS) # $@ = target, $< = input
 
